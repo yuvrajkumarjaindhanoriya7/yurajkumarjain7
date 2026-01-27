@@ -1,6 +1,6 @@
 - 👋 Hi, I’m @yuvrajkumarjain7
 - 👀 I’m interested in frontend 
-- 🌱 I’m currently learning 
+- 🌱 I’m currently learning how to be chill
 - 💞️ I’m looking to collaborate on GitHub 
 - 📫 How to reach me yuvrajjain347@gmail.com
 - 😄 Pronouns: he/his
