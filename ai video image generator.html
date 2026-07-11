@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grok AI Studio - Image & Video Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Space+Grotesk:wght@500;600&amp;display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .title-font {
+            font-family: 'Space Grotesk', sans-serif;
+        }
+
+        .gradient-bg {
+            background: linear-gradient(135deg, #0f172a 0%, #1e2937 100%);
+        }
+
+        .prompt-input {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        
+        .prompt-input:focus {
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.3);
+        }
+
+        .generated-image {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: scale(0.95); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        .history-item {
+            transition: all 0.2s ease;
+        }
+        
+        .history-item:hover {
+            transform: translateX(4px);
+        }
+    </style>
+</head>
+<body class="gradient-bg text-white min-h-screen">
+    <div class="flex h-screen">
+        <!-- Sidebar -->
+        <div class="w-72 bg-slate-900 border-r border-slate-700 flex flex-col">
+            <div class="p-6 border-b border-slate-700">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-blue-600 rounded-2xl flex items-center justify-center text-2xl">✦</div>
+                    <div>
+                        <h1 class="title-font text-3xl font-semibold tracking-tighter">Grok Studio</h1>
+                        <p class="text-xs text-slate-400">AI Image & Video</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="p-4">
+                <div onclick="switchTab(0)" class="tab-button flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800 cursor-pointer bg-slate-800 text-white" id="tab-0">
+                    <i class="fa-solid fa-image text-blue-400"></i>
+                    <span class="font-medium">Image Generator</span>
+                </div>
+                <div onclick="switchTab(1)" class="tab-button flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-slate-800 cursor-pointer mt-2" id="tab-1">
+                    <i class="fa-solid fa-video text-purple-400"></i>
+                    <span class="font-medium">Video Generator</span>
+                </div>
+            </div>
+            
+            <div class="px-6 mt-8">
+                <div class="text-xs uppercase tracking-widest text-slate-500 mb-4">Recent Creations</div>
+                <div id="history" class="space-y-3 text-sm"></div>
+            </div>
+            
+            <div class="mt-auto p-6">
+                <div class="bg-slate-800 rounded-3xl p-5 text-xs">
+                    <div class="flex items-center gap-2 text-emerald-400 mb-2">
+                        <i class="fa-solid fa-wand-magic-sparkles"></i>
+                        <span class="font-medium">Powered by Grok Imagine</span>
+                    </div>
+                    <p class="text-slate-400">Generate stunning images and short videos using xAI's latest models.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="flex-1 flex flex-col">
+            <!-- Top Bar -->
+            <div class="h-16 border-b border-slate-700 bg-slate-900/80 backdrop-blur-md flex items-center px-8 justify-between">
+                <div class="flex items-center gap-8">
+                    <div id="mode-title" class="text-2xl font-semibold title-font">Image Generator</div>
+                </div>
+                
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center bg-slate-800 rounded-full px-4 py-1 text-sm">
+                        <div class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse mr-2"></div>
+                        Online
+                    </div>
+                    <button onclick="clearAll()" 
+                            class="flex items-center gap-2 px-5 py-2 bg-slate-800 hover:bg-slate-700 rounded-2xl text-sm transition-colors">
+                        <i class="fa-solid fa-trash"></i>
+                        <span>Clear</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Prompt Area -->
+            <div class="p-8 flex-1 overflow-auto">
+                <div class="max-w-3xl mx-auto">
+                    <!-- Prompt Input -->
+                    <div class="mb-8">
+                        <label class="block text-sm font-medium text-slate-400 mb-3">Describe what you want to create</label>
+                        <div class="relative">
+                            <textarea id="prompt" 
+                                      class="prompt-input w-full bg-slate-800 border border-slate-600 rounded-3xl px-6 py-5 text-lg resize-none focus:outline-none h-32"
+                                      placeholder="A futuristic cyberpunk city at sunset with flying cars, neon lights, highly detailed, cinematic..."></textarea>
+                            <button onclick="generateContent()" 
+                                    class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 transition-colors px-8 py-3 rounded-2xl font-medium flex items-center gap-2 shadow-lg shadow-blue-500/30">
+                                <i class="fa-solid fa-wand-magic-sparkles"></i>
+                                <span id="generate-btn-text">Generate Image</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Style Options -->
+                    <div class="mb-8">
+                        <div class="text-sm font-medium text-slate-400 mb-3">Style</div>
+                        <div class="flex flex-wrap gap-3" id="style-options">
+                            <!-- Populated by JS -->
+                        </div>
+                    </div>
+                    
+                    <!-- Parameters -->
+                    <div class="grid grid-cols-3 gap-6 mb-12">
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-2">Aspect Ratio</label>
+                            <select id="aspect" class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white">
+                                <option value="16:9">Landscape (16:9)</option>
+                                <option value="1:1" selected>Square (1:1)</option>
+                                <option value="9:16">Portrait (9:16)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-2">Quality</label>
+                            <select id="quality" class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white">
+                                <option value="standard">Standard</option>
+                                <option value="high" selected>High</option>
+                                <option value="ultra">Ultra</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-xs text-slate-400 mb-2">Seed</label>
+                            <input type="number" id="seed" value="4242" 
+                                   class="w-full bg-slate-800 border border-slate-700 rounded-2xl px-4 py-3 text-white">
+                        </div>
+                    </div>
+                    
+                    <!-- Output Area -->
+                    <div id="output" class="min-h-[400px] border border-dashed border-slate-600 rounded-3xl flex items-center justify-center relative overflow-hidden">
+                        <div id="placeholder" class="text-center">
+                            <div class="w-20 h-20 mx-auto mb-6 rounded-3xl bg-slate-800 flex items-center justify-center text-4xl opacity-50">
+                                ✦
+                            </div>
+                            <p class="text-slate-400">Your creation will appear here</p>
+                        </div>
+                        
+                        <!-- Image Result -->
+                        <div id="image-result" class="hidden w-full h-full p-8">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <div class="text-lg font-medium" id="result-title">Generated Image</div>
+                                    <div class="text-sm text-slate-400" id="result-prompt"></div>
+                                </div>
+                                <button onclick="downloadImage()" 
+                                        class="flex items-center gap-2 px-6 py-2 bg-white text-slate-900 rounded-2xl hover:bg-slate-100">
+                                    <i class="fa-solid fa-download"></i>
+                                    Download
+                                </button>
+                            </div>
+                            <img id="generated-img" class="generated-image w-full max-h-[500px] object-contain rounded-3xl shadow-2xl mx-auto border border-slate-700" 
+                                 alt="Generated image">
+                        </div>
+                        
+                        <!-- Video Result -->
+                        <div id="video-result" class="hidden w-full h-full p-8 flex flex-col">
+                            <div class="flex justify-between items-start mb-6">
+                                <div>
+                                    <div class="text-lg font-medium" id="video-title">Generated Video</div>
+                                    <div class="text-sm text-slate-400" id="video-prompt"></div>
+                                </div>
+                                <button onclick="downloadVideo()" 
+                                        class="flex items-center gap-2 px-6 py-2 bg-white text-slate-900 rounded-2xl hover:bg-slate-100">
+                                    <i class="fa-solid fa-download"></i>
+                                    Download
+                                </button>
+                            </div>
+                            <video id="generated-video" class="w-full max-h-[500px] rounded-3xl shadow-2xl mx-auto border border-slate-700" controls></video>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Footer Bar -->
+            <div class="h-20 border-t border-slate-700 bg-slate-900 px-8 flex items-center text-xs text-slate-400">
+                <div class="flex-1">Made with ❤️ by Grok • Powered by xAI</div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white transition-colors">Examples</a>
+                    <a href="#" class="hover:text-white transition-colors">Community</a>
+                    <a href="#" class="hover:text-white transition-colors">Help</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tailwind script already loaded
+        
+        let currentTab = 0; // 0 = image, 1 = video
+        
+        const styles = [
+            {name: "Photorealistic", emoji: "📸"},
+            {name: "Cinematic", emoji: "🎥"},
+            {name: "Anime", emoji: "🌸"},
+            {name: "Oil Painting", emoji: "🖼️"},
+            {name: "Cyberpunk", emoji: "🌃"},
+            {name: "Surreal", emoji: "🌌"}
+        ];
+        
+        function populateStyles() {
+            const container = document.getElementById('style-options');
+            container.innerHTML = '';
+            styles.forEach((style, index) => {
+                const btn = document.createElement('button');
+                btn.className = `px-6 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-600 rounded-3xl flex items-center gap-3 text-sm transition-all ${index === 0 ? 'ring-2 ring-blue-500' : ''}`;
+                btn.innerHTML = `
+                    <span>${style.emoji}</span>
+                    <span>${style.name}</span>
+                `;
+                btn.onclick = () => {
+                    document.querySelectorAll('#style-options button').forEach(b => b.classList.remove('ring-2', 'ring-blue-500'));
+                    btn.classList.add('ring-2', 'ring-blue-500');
+                };
+                container.appendChild(btn);
+            });
+        }
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            document.querySelectorAll('.tab-button').forEach((el, i) => {
+                if (i === tab) {
+                    el.classList.add('bg-slate-800', 'text-white');
+                } else {
+                    el.classList.remove('bg-slate-800', 'text-white');
+                }
+            });
+            
+            document.getElementById('mode-title').textContent = tab === 0 ? 'Image Generator' : 'Video Generator';
+            document.getElementById('generate-btn-text').textContent = tab === 0 ? 'Generate Image' : 'Generate Video';
+            
+            // Reset output
+            resetOutput();
+        }
+        
+        function resetOutput() {
+            document.getElementById('placeholder').classList.remove('hidden');
+            document.getElementById('image-result').classList.add('hidden');
+            document.getElementById('video-result').classList.add('hidden');
+        }
+        
+        function generateContent() {
+            const prompt = document.getElementById('prompt').value.trim();
+            if (!prompt) {
+                alert("Please enter a creative prompt!");
+                return;
+            }
+            
+            const placeholder = document.getElementById('placeholder');
+            placeholder.classList.add('hidden');
+            
+            if (currentTab === 0) {
+                // Image generation simulation
+                document.getElementById('image-result').classList.remove('hidden');
+                document.getElementById('video-result').classList.add('hidden');
+                
+                const img = document.getElementById('generated-img');
+                const resultPrompt = document.getElementById('result-prompt');
+                
+                resultPrompt.textContent = prompt;
+                
+                // Demo images based on keywords or random
+                const demoImages = [
+                    "https://picsum.photos/id/1015/1200/800",
+                    "https://picsum.photos/id/1036/1200/800",
+                    "https://picsum.photos/id/106/1200/800",
+                    "https://picsum.photos/id/201/1200/800",
+                    "https://picsum.photos/id/133/1200/800"
+                ];
+                
+                img.src = demoImages[Math.floor(Math.random() * demoImages.length)];
+                
+                addToHistory(prompt, 'image');
+                
+            } else {
+                // Video generation simulation
+                document.getElementById('video-result').classList.remove('hidden');
+                document.getElementById('image-result').classList.add('hidden');
+                
+                const video = document.getElementById('generated-video');
+                const videoPromptEl = document.getElementById('video-prompt');
+                
+                videoPromptEl.textContent = prompt;
+                
+                // Demo video (public domain short clips or placeholders)
+                // Using a sample MP4 from web (Pexels or similar free)
+                video.src = "https://assets.mixkit.co/videos/preview/754/754-large.mp4"; // Sample abstract video
+                
+                addToHistory(prompt, 'video');
+            }
+        }
+        
+        function addToHistory(prompt, type) {
+            const historyContainer = document.getElementById('history');
+            const item = document.createElement('div');
+            item.className = 'history-item flex gap-3 bg-slate-800 p-3 rounded-2xl cursor-pointer';
+            item.innerHTML = `
+                <div class="w-12 h-12 bg-slate-700 rounded-xl flex-shrink-0 flex items-center justify-center text-xl">
+                    ${type === 'image' ? '🖼️' : '🎬'}
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="text-xs text-slate-400">${type.toUpperCase()}</div>
+                    <div class="line-clamp-2 text-sm">${prompt.substring(0, 65)}${prompt.length > 65 ? '...' : ''}</div>
+                </div>
+            `;
+            item.onclick = () => {
+                document.getElementById('prompt').value = prompt;
+                generateContent();
+            };
+            historyContainer.prepend(item);
+            
+            // Keep only 5 items
+            if (historyContainer.children.length > 5) {
+                historyContainer.removeChild(historyContainer.lastChild);
+            }
+        }
+        
+        function downloadImage() {
+            const img = document.getElementById('generated-img');
+            const link = document.createElement('a');
+            link.href = img.src;
+            link.download = 'grok-generated-image.jpg';
+            link.click();
+        }
+        
+        function downloadVideo() {
+            const video = document.getElementById('generated-video');
+            const link = document.createElement('a');
+            link.href = video.src;
+            link.download = 'grok-generated-video.mp4';
+            link.click();
+        }
+        
+        function clearAll() {
+            if (confirm('Clear all history and current generation?')) {
+                document.getElementById('history').innerHTML = '';
+                document.getElementById('prompt').value = '';
+                resetOutput();
+            }
+        }
+        
+        // Initialize
+        window.onload = function() {
+            populateStyles();
+            
+            // Demo history
+            setTimeout(() => {
+                addToHistory("A majestic dragon soaring over misty mountains at dawn", "image");
+                addToHistory("Smooth animation of liquid metal forming futuristic logo", "video");
+            }, 800);
+            
+            // Keyboard support
+            document.getElementById('prompt').addEventListener('keydown', function(e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    generateContent();
+                }
+            });
+        };
+    </script>
+</body>
+</html>
