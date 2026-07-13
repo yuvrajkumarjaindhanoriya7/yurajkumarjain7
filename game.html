@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini Terreria - Dynasty Legacy</title>
+    <style>
+        body { margin:0; background:#000; font-family:Arial; overflow:hidden; height:100vh; }
+        canvas { image-rendering:pixelated; border:3px solid #444; margin:auto; display:block; }
+        #ui { position:absolute; top:8px; left:8px; color:#fff; background:rgba(0,0,0,0.75); padding:12px; border-radius:8px; font-size:14px; }
+        #familyPanel { 
+            position:absolute; top:80px; right:10px; background:rgba(30,20,40,0.97); 
+            padding:15px; border-radius:10px; color:#ffccdd; width:280px; max-height:70vh; overflow:auto; 
+            border:2px solid #ff99bb; display:none;
+        }
+        .family-member { padding:6px; margin:4px 0; background:rgba(255,255,255,0.1); border-radius:4px; cursor:pointer; }
+        .family-member:hover { background:rgba(255,200,220,0.3); }
+    </style>
+</head>
+<body>
+    <canvas id="game" width="800" height="600"></canvas>
+    
+    <div id="ui">
+        ❤️ Health: <span id="health">100</span><br>
+        Villages: <span id="villages">0</span> | Gold: <span id="gold">150</span><br>
+        Dynasty Generation: <span id="gen">1</span>
+    </div>
+    <div id="familyPanel">
+        <strong>🌳 Dynasty Family Tree</strong><br>
+        <div id="familyTree"></div>
+        <button onclick="closeFamilyPanel()">Close</button>
+    </div>
+
+    <script>
+        let player = {x: 500, y: 200, health: 100, generation: 1, name: "King Eldric"};
+        let dynasty = {
+            founder: player,
+            members: [{name: "King Eldric", role: "Founder", gen: 1, health: 100, alive: true}],
+            children: []
+        };
+        let wife = null;
+        let currentPlayer = 0; // index in members
+        
+        function marry() {
+            if (wife) return;
+            wife = {name: "Queen Lira", role: "Consort", gen: player.generation, health: 100, alive: true};
+            dynasty.members.push(wife);
+            updateFamilyTree();
+            alert("💍 You married Queen Lira. The dynasty grows stronger.");
+        }
+        
+        function haveChild() {
+            if (!wife) return alert("Marry first!");
+            const childName = Math.random() > 0.5 ? "Prince Thorne" : "Princess Elara";
+            const child = {
+                name: childName,
+                role: "Heir",
+                gen: player.generation + 1,
+                health: 100,
+                alive: true
+            };
+            dynasty.children.push(child);
+            dynasty.members.push(child);
+            updateFamilyTree();
+            alert(`👶 ${childName} was born! Generation ${child.gen}`);
+        }
+        
+        function updateFamilyTree() {
+            const container = document.getElementById('familyTree');
+            container.innerHTML = dynasty.members.map((m, i) => `
+                <div class="family-member" onclick="selectHeir(${i})">
+                    ${m.name} (${m.role}) - Gen ${m.gen} ${m.alive ? '❤️' : '☠️'}
+                </div>
+            `).join('');
+        }
+        
+        window.selectHeir = function(index) {
+            if (!dynasty.members[index].alive) return alert("This member has passed.");
+            currentPlayer = index;
+            player = dynasty.members[index];
+            alert(`Playing as ${player.name} of Generation ${player.gen}`);
+            closeFamilyPanel();
+        };
+        
+        function playerDeath() {
+            dynasty.members[currentPlayer].alive = false;
+            alert(`☠️ ${dynasty.members[currentPlayer].name} has fallen.`);
+            
+            const livingHeirs = dynasty.members.filter(m => m.alive && m.gen > 1);
+            if (livingHeirs.length === 0) {
+                alert("Dynasty ended... Game Over.");
+                return;
+            }
+            
+            // Auto or manual selection
+            const choice = confirm("Choose next heir? (Cancel for auto)");
+            if (choice) {
+                document.getElementById('familyPanel').style.display = 'block';
+            } else {
+                const next = livingHeirs[0];
+                currentPlayer = dynasty.members.indexOf(next);
+                player = next;
+                alert(`Succession: Now playing as ${next.name}`);
+            }
+        }
+        
+        window.closeFamilyPanel = function() {
+            document.getElementById('familyPanel').style.display = 'none';
+        };
+        
+        function gameLoop() {
+            // ... game logic ...
+            if (player.health <= 0) playerDeath();
+            
+            // Random family events
+            if (Math.random() < 0.003 && wife) haveChild();
+            
+            document.getElementById('health').textContent = Math.floor(player.health);
+            document.getElementById('gen').textContent = player.generation;
+            
+            requestAnimationFrame(gameLoop);
+        }
+        
+        // Key to open family tree
+        window.addEventListener('keydown', e => {
+            if (e.key.toLowerCase() === 'f') {
+                updateFamilyTree();
+                document.getElementById('familyPanel').style.display = 'block';
+            }
+        });
+        
+        // Init
+        marry(); // start with wife
+        gameLoop();
+        
+        console.log("%c🌳 Dynasty & Succession System Active! Press F for Family Tree.", "color:#ff99cc;font-size:15px");
+    </script>
+</body>
+</html>
